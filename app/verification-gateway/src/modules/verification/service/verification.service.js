@@ -5,6 +5,7 @@ const dlProvider = require('../../../providers/gov/dl.provider');
 const normalizer = require('../../../normalizers/identity.normalizer');
 const VerificationLog = require('../../../models/verification-log.model');
 const billingService = require('../../billing/service/billing.service');
+const generateIdempotencyKey = require('../../../utils/generateKey')
 const AppError = require('../../../utils/AppError');
 const { redisClient } = require('../../../config/redis');
 const { incrementMetric } = require('../../../utils/metrics.util');
@@ -16,7 +17,9 @@ const CACHE_TTL_SECONDS = 3600;
 class VerificationService {
 
   async createVerificationJob(jobDetails) {
-    const { type, id, mode, purpose, clientOrganization, idempotencyKey } = jobDetails;
+    const { type, id, mode, purpose, clientOrganization, idempotencyKey: clientKey} = jobDetails;
+
+    const idempotencyKey = clientKey || generateIdempotencyKey()
 
     if (idempotencyKey) {
       const existingLog = await VerificationLog.findOne({ idempotencyKey });
@@ -25,13 +28,14 @@ class VerificationService {
       }
     }
 
+
     const verificationLog = await VerificationLog.create({
       verificationType: type,
       searchId: id,
       mode: mode,
       status: 'PENDING',
       clientOrganizationId: clientOrganization._id,
-      idempotencyKey: idempotencyKey,
+      idempotencyKey
     });
 
     const jobData = {
@@ -41,7 +45,7 @@ class VerificationService {
       mode,
       purpose,
       clientOrganizationId: clientOrganization._id.toString(),
-      idempotencyKey,
+      idempotencyKey
     };
     publishToQueue(jobData);
 
@@ -72,6 +76,9 @@ class VerificationService {
   async handleWebhook(payload) {
     const { verificationId, status, data, error } = payload;
 
+    if(!payload){
+      throw new AppError('Invalid webhook payload. Missing webhook details.', 400, 'BAD_REQUEST')
+    }
     const log = await VerificationLog.findById(verificationId);
     if (!log) {
       throw new AppError('Verification record not found for webhook.', 404, 'NOT_FOUND');

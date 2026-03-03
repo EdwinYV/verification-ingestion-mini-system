@@ -4,7 +4,9 @@ const asyncHandler = require('../../../utils/asyncHandler');
 exports.queueVerification = asyncHandler(async (req, res) => {
   const { type, id, mode, purpose } = req.body;
   const clientOrganization = req.clientOrganization;
-  const idempotencyKey = req.headers['x-idempotency-key'];
+
+  const idempotencyKey =
+      req.headers['x-idempotency-key'] || req.body.idempotencyKey;
 
   const result = await verificationService.createVerificationJob({
     type,
@@ -12,7 +14,7 @@ exports.queueVerification = asyncHandler(async (req, res) => {
     mode,
     purpose,
     clientOrganization,
-    idempotencyKey,
+    idempotencyKey
   });
 
   if (result.isDuplicate) {

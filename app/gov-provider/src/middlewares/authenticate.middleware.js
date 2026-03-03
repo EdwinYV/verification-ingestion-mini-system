@@ -8,7 +8,7 @@ const authenticate = async (req, res, next) => {
   try {
     const clientId = req.headers['x-client-id'];
     const signature = req.headers['x-signature'];
-    const timestamp = req.headers['x-timestamp']; // Ensure timestamp is always present
+    const timestamp = req.headers['x-timestamp'];
 
     if (!clientId || !signature || !timestamp) {
       return res.status(401).json({
