@@ -1,10 +1,13 @@
 require('dotenv').config();
+require('./observability/otel');
 const app = require('./app');
 const mongoose = require('mongoose');
 const { connectDB, sequelize } = require('./config/database');
 const { connectRedis } = require('./config/redis');
 const { connectRabbitMQ } = require('./config/rabbitmq');
 const { startWorker } = require('./workers/verification.worker');
+const { startSearchIndexWorker } = require('./workers/search-index.worker');
+const { connectElasticsearch, ensureVerificationLogIndex } = require('./config/elasticsearch');
 const seedData = require('./utils/seeder');
 
 // Import Sequelize Models to ensure they are registered before sync
@@ -29,7 +32,11 @@ const startServer = async () => {
 
     await connectRabbitMQ();
 
+    await connectElasticsearch();
+    await ensureVerificationLogIndex();
+
     startWorker();
+    startSearchIndexWorker();
 
     await seedData();
 

@@ -82,6 +82,27 @@ services:
     networks:
       - verifyme-network
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
+    container_name: verifyme-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    networks:
+      - verifyme-network
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.54
+    container_name: verifyme-jaeger
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+    networks:
+      - verifyme-network
+
   verification-gateway:
     build: ../app/verification-gateway
     container_name: verification-gateway
@@ -97,12 +118,16 @@ services:
       - REDIS_URL_GATEWAY=${REDIS_URL_GATEWAY}
       - RABBITMQ_URL=amqp://rabbitmq:5672
       - GATEWAY_BASE_URL=http://verification-gateway:3000
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       - mongo
       - gov-provider
       - gateway-postgres
       - gateway-redis
       - rabbitmq
+      - elasticsearch
+      - jaeger
     networks:
       - verifyme-network
 

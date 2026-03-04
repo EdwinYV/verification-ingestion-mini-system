@@ -10,6 +10,8 @@ const AppError = require('../../../utils/AppError');
 const { redisClient } = require('../../../config/redis');
 const { incrementMetric } = require('../../../utils/metrics.util');
 const { publishToQueue } = require('../../../config/rabbitmq');
+const { injectTraceHeaders } = require('../../../utils/tracing.util');
+const { enqueueVerificationLogIndex } = require('../../audit/search/search-index.publisher');
 const crypto = require('crypto');
 
 const CACHE_TTL_SECONDS = 3600;
@@ -47,7 +49,8 @@ class VerificationService {
       clientOrganizationId: clientOrganization._id.toString(),
       idempotencyKey
     };
-    publishToQueue(jobData);
+    publishToQueue(jobData, { headers: injectTraceHeaders() });
+    enqueueVerificationLogIndex(verificationLog._id, 'created');
 
     return { isDuplicate: false, job: verificationLog };
   }
@@ -187,6 +190,7 @@ class VerificationService {
         update.responsePayload.photo = '[BASE64_IMAGE_TRUNCATED]';
       }
       await VerificationLog.findByIdAndUpdate(logId, update);
+      enqueueVerificationLogIndex(logId, 'updated');
       console.log(`[DEBUG] Log ${logId} updated to ${status}`);
     } catch (logError) {
       console.error(`Failed to update log ${logId}:`, logError);

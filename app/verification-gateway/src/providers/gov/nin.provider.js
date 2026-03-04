@@ -39,8 +39,8 @@ class NINProvider {
           'x-signature': signature,
           'x-idempotency-key': idempotencyKey
         },
-        timeout: 30000 // 30 seconds timeout
-      }); // Return the entire response
+        timeout: 30000
+      });
     } catch (error) {
       if (error.response) {
         const customError = new Error(error.response.data.message || error.response.statusText);

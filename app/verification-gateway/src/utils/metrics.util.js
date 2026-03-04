@@ -8,6 +8,25 @@ const incrementMetric = async (metricType) => {
   }
 };
 
+const getMetrics = async () => {
+  try {
+    const [hits, misses] = await redisClient.mGet([
+      'metrics:cache:hits',
+      'metrics:cache:misses',
+    ]);
+    return {
+      cache: {
+        hits: Number(hits || 0),
+        misses: Number(misses || 0),
+      },
+    };
+  } catch (redisError) {
+    console.error('Failed to read metrics (graceful degradation):', redisError);
+    return { cache: { hits: 0, misses: 0 } };
+  }
+};
+
 module.exports = {
   incrementMetric,
+  getMetrics,
 };
