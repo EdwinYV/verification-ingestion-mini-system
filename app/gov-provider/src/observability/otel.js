@@ -10,7 +10,7 @@ const exporter = new OTLPTraceExporter({
 
 const sdk = new NodeSDK({
   resource: new Resource({
-    [SemanticResourceAttributes.SERVICE_NAME]: 'verification-gateway',
+    [SemanticResourceAttributes.SERVICE_NAME]: 'gov-provider',
   }),
   traceExporter: exporter,
   instrumentations: [

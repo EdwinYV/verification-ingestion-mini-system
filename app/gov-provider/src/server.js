@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('./observability/otel');
 const app = require('./app');
 const mongoose = require('mongoose');
 const seedData = require('./utils/seeder');

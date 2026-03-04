@@ -44,6 +44,7 @@ services:
       - POSTGRES_URI=postgres://postgres:postgres@gov-postgres:5432/gov_billing
       - REDIS_URL=redis://gov-redis:6379
       - RABBITMQ_URL=amqp://rabbitmq:5672
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       - mongo
       - gov-postgres
