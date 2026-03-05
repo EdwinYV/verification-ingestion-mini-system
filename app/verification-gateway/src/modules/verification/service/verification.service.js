@@ -191,7 +191,6 @@ class VerificationService {
       }
       await VerificationLog.findByIdAndUpdate(logId, update);
       enqueueVerificationLogIndex(logId, 'updated');
-      console.log(`[DEBUG] Log ${logId} updated to ${status}`);
     } catch (logError) {
       console.error(`Failed to update log ${logId}:`, logError);
     }
