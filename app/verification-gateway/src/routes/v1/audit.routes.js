@@ -8,6 +8,7 @@ const { searchSchema, reindexSchema } = require('../../modules/audit/data/schema
 
 
 router.get('/history',rateLimit('audit-history', 100),auditController.getVerificationHistory);
+router.get('/search', rateLimit('audit-search', 100), validateQuery(searchSchema), auditController.searchVerificationLogs);
 router.get('/audit/search', rateLimit('audit-search', 100), validateQuery(searchSchema), auditController.searchVerificationLogs);
 router.post('/audit/reindex', rateLimit('audit-reindex', 10), validate(reindexSchema), auditController.reindexVerificationLogs);
 
