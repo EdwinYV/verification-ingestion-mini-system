@@ -144,9 +144,9 @@ class BillingService {
         }
 
         const balanceBeforeMinor = Number(wallet.balanceMinor);
-        const balanceAfterMinor = balanceBeforeMinor + Number(amountMinor);
-
-        await wallet.update({ balanceMinor: balanceAfterMinor }, { transaction: t });
+        await wallet.increment('balanceMinor', { by: Number(amountMinor), transaction: t });
+        await wallet.reload({ transaction: t });
+        const balanceAfterMinor = Number(wallet.balanceMinor);
 
         const tx = await Transaction.create(
           {
@@ -237,11 +237,13 @@ class BillingService {
         const clientBalanceBeforeMinor = Number(clientWallet.balanceMinor);
         const systemBalanceBeforeMinor = Number(systemWallet.balanceMinor);
 
-        const clientBalanceAfterMinor = clientBalanceBeforeMinor - costMinor;
-        const systemBalanceAfterMinor = systemBalanceBeforeMinor + costMinor;
+        await clientWallet.decrement('balanceMinor', { by: costMinor, transaction: t });
+        await systemWallet.increment('balanceMinor', { by: costMinor, transaction: t });
+        await clientWallet.reload({ transaction: t });
+        await systemWallet.reload({ transaction: t });
 
-        await clientWallet.update({ balanceMinor: clientBalanceAfterMinor }, { transaction: t });
-        await systemWallet.update({ balanceMinor: systemBalanceAfterMinor }, { transaction: t });
+        const clientBalanceAfterMinor = Number(clientWallet.balanceMinor);
+        const systemBalanceAfterMinor = Number(systemWallet.balanceMinor);
 
         await Transaction.create(
           {
@@ -346,11 +348,13 @@ class BillingService {
         const clientBalanceBeforeMinor = Number(clientWallet.balanceMinor);
         const systemBalanceBeforeMinor = Number(systemWallet.balanceMinor);
 
-        const clientBalanceAfterMinor = clientBalanceBeforeMinor + costMinor;
-        const systemBalanceAfterMinor = systemBalanceBeforeMinor - costMinor;
+        await clientWallet.increment('balanceMinor', { by: costMinor, transaction: t });
+        await systemWallet.decrement('balanceMinor', { by: costMinor, transaction: t });
+        await clientWallet.reload({ transaction: t });
+        await systemWallet.reload({ transaction: t });
 
-        await clientWallet.update({ balanceMinor: clientBalanceAfterMinor }, { transaction: t });
-        await systemWallet.update({ balanceMinor: systemBalanceAfterMinor }, { transaction: t });
+        const clientBalanceAfterMinor = Number(clientWallet.balanceMinor);
+        const systemBalanceAfterMinor = Number(systemWallet.balanceMinor);
 
         await Transaction.create(
           {
