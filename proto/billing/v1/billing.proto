@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package billing.v1;
+
+service BillingService {
+  rpc FindOrCreateWallet(FindOrCreateWalletRequest) returns (FindOrCreateWalletResponse);
+  rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
+  rpc FundWallet(FundWalletRequest) returns (FundWalletResponse);
+  rpc ChargeWallet(ChargeWalletRequest) returns (ChargeWalletResponse);
+  rpc RefundWallet(RefundWalletRequest) returns (RefundWalletResponse);
+  rpc GetHistory(GetHistoryRequest) returns (GetHistoryResponse);
+}
+
+enum WalletStatus {
+  WALLET_STATUS_UNKNOWN = 0;
+  WALLET_STATUS_ACTIVE = 1;
+  WALLET_STATUS_SUSPENDED = 2;
+}
+
+enum TransactionType {
+  TRANSACTION_TYPE_UNKNOWN = 0;
+  TRANSACTION_TYPE_CREDIT = 1;
+  TRANSACTION_TYPE_DEBIT = 2;
+}
+
+enum ServiceType {
+  SERVICE_TYPE_UNKNOWN = 0;
+  SERVICE_TYPE_NIN = 1;
+  SERVICE_TYPE_BVN = 2;
+  SERVICE_TYPE_PASSPORT = 3;
+  SERVICE_TYPE_DRIVERS_LICENSE = 4;
+}
+
+message WalletRef {
+  string tenant = 1;
+  string organization_id = 2;
+}
+
+message BillingError {
+  string code = 1;
+  string message = 2;
+}
+
+message Wallet {
+  string id = 1;
+  string tenant = 2;
+  string organization_id = 3;
+  int64 balance_minor = 4;
+  string currency = 5;
+  WalletStatus status = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message Transaction {
+  string id = 1;
+  string wallet_id = 2;
+  string tenant = 3;
+  TransactionType type = 4;
+  int64 amount_minor = 5;
+  int64 balance_before_minor = 6;
+  int64 balance_after_minor = 7;
+  string description = 8;
+  string reference = 9;
+  string status = 10;
+  string created_at = 11;
+  string updated_at = 12;
+}
+
+message FindOrCreateWalletRequest {
+  WalletRef wallet = 1;
+}
+
+message FindOrCreateWalletResponse {
+  Wallet wallet = 1;
+  bool created = 2;
+}
+
+message GetBalanceRequest {
+  WalletRef wallet = 1;
+}
+
+message GetBalanceResponse {
+  int64 balance_minor = 1;
+  string currency = 2;
+}
+
+message FundWalletRequest {
+  WalletRef wallet = 1;
+  int64 amount_minor = 2;
+  string reference = 3;
+  string idempotency_key = 4;
+}
+
+message FundWalletResponse {
+  int64 new_balance_minor = 1;
+  string currency = 2;
+  string reference = 3;
+}
+
+message ChargeWalletRequest {
+  WalletRef wallet = 1;
+  ServiceType service_type = 2;
+  string idempotency_key = 3;
+}
+
+message ChargeWalletResponse {
+  bool success = 1;
+  int64 cost_minor = 2;
+  int64 new_balance_minor = 3;
+  string currency = 4;
+  BillingError error = 5;
+}
+
+message RefundWalletRequest {
+  WalletRef wallet = 1;
+  ServiceType service_type = 2;
+  string reference = 3;
+}
+
+message RefundWalletResponse {
+  bool success = 1;
+  int64 new_balance_minor = 2;
+  string currency = 3;
+  BillingError error = 4;
+}
+
+message GetHistoryRequest {
+  WalletRef wallet = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message GetHistoryResponse {
+  int64 total = 1;
+  int32 page = 2;
+  int32 pages = 3;
+  repeated Transaction transactions = 4;
+}

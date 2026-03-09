@@ -11,17 +11,25 @@ services:
     networks:
       - verifyme-network
 
-  gov-postgres:
+  billing-postgres:
     image: postgres:15-alpine
-    container_name: gov-postgres
+    container_name: billing-postgres
     ports:
       - "5432:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=gov_billing
+      - POSTGRES_DB=billing_db
     volumes:
-      - gov-postgres-data:/var/lib/postgresql/data
+      - billing-postgres-data:/var/lib/postgresql/data
+    networks:
+      - verifyme-network
+
+  billing-redis:
+    image: redis:7-alpine
+    container_name: billing-redis
+    ports:
+      - "6381:6379"
     networks:
       - verifyme-network
 
@@ -29,40 +37,7 @@ services:
     image: redis:7-alpine
     container_name: gov-redis
     ports:
-      - "6379:6379"
-    networks:
-      - verifyme-network
-
-  gov-provider:
-    build: ../app/gov-provider
-    container_name: gov-provider
-    ports:
-      - "3001:3001"
-    environment:
-      - PORT=3001
-      - MONGO_URI=${MONGO_URI_GOV}
-      - POSTGRES_URI=postgres://postgres:postgres@gov-postgres:5432/gov_billing
-      - REDIS_URL=redis://gov-redis:6379
-      - RABBITMQ_URL=amqp://rabbitmq:5672
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-    depends_on:
-      - mongo
-      - gov-postgres
-      - gov-redis
-    networks:
-      - verifyme-network
-
-  gateway-postgres:
-    image: postgres:15-alpine
-    container_name: gateway-postgres
-    ports:
-      - "5433:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=gateway_billing
-    volumes:
-      - gateway-postgres-data:/var/lib/postgresql/data
+      - "6382:6379"
     networks:
       - verifyme-network
 
@@ -104,6 +79,46 @@ services:
     networks:
       - verifyme-network
 
+  billing-service:
+    build: ../app/billing-service
+    container_name: billing-service
+    ports:
+      - "3002:3002"
+      - "50051:50051"
+    environment:
+      - PORT=3002
+      - BILLING_POSTGRES_URI=postgres://postgres:postgres@billing-postgres:5432/billing_db
+      - BILLING_REDIS_URL=redis://billing-redis:6379
+      - BILLING_GRPC_BIND_ADDRESS=0.0.0.0:50051
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      - billing-postgres
+      - billing-redis
+      - jaeger
+    networks:
+      - verifyme-network
+
+  gov-provider:
+    build: ../app/gov-provider
+    container_name: gov-provider
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - MONGO_URI=${MONGO_URI_GOV}
+      - REDIS_URL=redis://gov-redis:6379
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - BILLING_GRPC_ADDR=billing-service:50051
+      - BILLING_GRPC_DEADLINE_MS=4000
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    depends_on:
+      - mongo
+      - gov-redis
+      - rabbitmq
+      - billing-service
+    networks:
+      - verifyme-network
+
   verification-gateway:
     build: ../app/verification-gateway
     container_name: verification-gateway
@@ -115,23 +130,23 @@ services:
       - GOV_PROVIDER_URL=${GOV_PROVIDER_URL}
       - GOV_CLIENT_ID=${GOV_CLIENT_ID}
       - GOV_CLIENT_SECRET=${GOV_CLIENT_SECRET}
-      - POSTGRES_URI_GATEWAY=${POSTGRES_URI_GATEWAY}
-      - REDIS_URL_GATEWAY=${REDIS_URL_GATEWAY}
+      - REDIS_URL_GATEWAY=redis://gateway-redis:6379
       - RABBITMQ_URL=amqp://rabbitmq:5672
       - GATEWAY_BASE_URL=http://verification-gateway:3000
       - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - BILLING_GRPC_ADDR=billing-service:50051
+      - BILLING_GRPC_DEADLINE_MS=4000
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
     depends_on:
       - mongo
       - gov-provider
-      - gateway-postgres
       - gateway-redis
       - rabbitmq
       - elasticsearch
       - jaeger
+      - billing-service
     networks:
       - verifyme-network
-
 
 networks:
   verifyme-network:
@@ -139,5 +154,4 @@ networks:
 
 volumes:
   mongo-data:
-  gov-postgres-data:
-  gateway-postgres-data:
+  billing-postgres-data:

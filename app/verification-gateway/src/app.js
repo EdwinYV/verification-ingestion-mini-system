@@ -4,7 +4,6 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const routes = require('./routes');
 const mongoose = require('mongoose');
-const { sequelize } = require('./config/database');
 const { redisClient } = require('./config/redis');
 const { getChannel } = require('./config/rabbitmq');
 const { getElasticsearchClient, verificationLogIndex } = require('./config/elasticsearch');
@@ -24,18 +23,10 @@ app.get('/health/live', (req, res) => {
 app.get('/health/ready', async (req, res) => {
   const checks = {
     mongo: mongoose.connection.readyState === 1 ? 'UP' : 'DOWN',
-    postgres: 'DOWN',
     redis: redisClient.isOpen ? 'UP' : 'DOWN',
     rabbitmq: getChannel() ? 'UP' : 'DOWN',
     elasticsearch: 'DOWN',
   };
-
-  try {
-    await sequelize.authenticate();
-    checks.postgres = 'UP';
-  } catch (error) {
-    checks.postgres = 'DOWN';
-  }
 
   try {
     const esClient = getElasticsearchClient();
@@ -65,7 +56,6 @@ app.get('/metrics', async (req, res) => {
   });
 });
 
-
 app.use('/api', routes);
 
 app.use((err, req, res, next) => {
@@ -74,7 +64,7 @@ app.use((err, req, res, next) => {
   res.status(statusCode).json({
     status: 'error',
     code: err.code || 'SERVER_ERROR',
-    message: err.message || 'Internal Server Error'
+    message: err.message || 'Internal Server Error',
   });
 });
 
