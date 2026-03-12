@@ -168,8 +168,8 @@ class VerificationService {
 
     } catch (error) {
       console.error(`Verification job ${logId} failed to dispatch:`, error.message);
-      await billingService.refundWallet(clientOrganizationId, type.toUpperCase(), `refund_dispatch_failed_${logId}`);
-      await this.updateLog(logId, 'FAILED', null, `Failed to dispatch job to provider: ${error.message}`);
+      // Propagate dispatch failures to worker so retry policy is enforced there.
+      throw new Error(`DISPATCH_FAILED: ${error.message}`);
     }
   }
 

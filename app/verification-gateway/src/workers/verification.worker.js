@@ -50,16 +50,19 @@ const startWorker = () => {
 
           if (currentRetries < MAX_RETRIES) {
             const delay = Math.pow(2, currentRetries) * 1000;
+            const nextRetryCount = currentRetries + 1;
 
-            console.log(`Retrying job ${logId} in ${delay}ms (Attempt ${currentRetries + 1}/${MAX_RETRIES})`);
+            console.log(`Retrying job ${logId} in ${delay}ms (Attempt ${nextRetryCount}/${MAX_RETRIES})`);
 
             await VerificationLog.findByIdAndUpdate(logId, { 
               status: 'PENDING', 
-              retryCount: currentRetries + 1,
+              retryCount: nextRetryCount,
               errorMessage: `Processing failed. Retrying in ${delay}ms... (${error.message})`
             });
 
-            publishToRetryQueue(jobData, delay, { headers });
+            const retryPayload = { ...jobData, retryCount: nextRetryCount };
+            publishToRetryQueue(retryPayload, delay, { headers });
+            console.log(`Job ${logId} published to retry queue with delay ${delay}ms.`);
             channel.ack(msg);
           } else {
             console.error(`Job ${logId} failed permanently after ${MAX_RETRIES} retries.`);
@@ -71,8 +74,16 @@ const startWorker = () => {
             });
 
             try {
-              await billingService.refundWallet(clientOrganizationId, type.toUpperCase(), `refund_failed_${logId}`);
-              console.log(`Refunded client for job ${logId}`);
+              const refundResult = await billingService.refundWallet(
+                clientOrganizationId,
+                type.toUpperCase(),
+                `refund_failed_${logId}`
+              );
+              if (refundResult.success) {
+                console.log(`Refunded client for job ${logId}`);
+              } else {
+                console.error(`Refund call completed but failed for job ${logId}: ${refundResult.message || refundResult.error}`);
+              }
             } catch (refundError) {
               console.error(`Failed to refund client for job ${logId}:`, refundError);
             }
