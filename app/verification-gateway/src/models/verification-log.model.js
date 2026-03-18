@@ -4,6 +4,7 @@ const verificationLogSchema = new mongoose.Schema({
   verificationType: {
     type: String,
     required: true,
+    index: true
   },
   searchId: {
     type: String,
@@ -16,6 +17,7 @@ const verificationLogSchema = new mongoose.Schema({
     type: String,
     enum: ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'],
     default: 'PENDING',
+    index: true
   },
   retryCount: {
     type: Number,
@@ -34,6 +36,7 @@ const verificationLogSchema = new mongoose.Schema({
   clientOrganizationId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ClientOrganization',
+    index: true
   },
   idempotencyKey: {
     type: String,
@@ -43,10 +46,13 @@ const verificationLogSchema = new mongoose.Schema({
   requestedAt: {
     type: Date,
     default: Date.now,
+    index: true
   },
   completedAt: {
     type: Date,
   },
 }, { timestamps: true });
+
+verificationLogSchema.index({ clientOrganizationId: 1, requestedAt: -1 });
 
 module.exports = mongoose.model('VerificationLog', verificationLogSchema);

@@ -58,6 +58,9 @@ const Transaction = sequelize.define(
       {
         fields: ['tenant', 'reference'],
       },
+      {
+        fields: ['walletId'],
+      },
     ],
   }
 );

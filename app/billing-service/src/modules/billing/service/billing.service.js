@@ -8,6 +8,22 @@ const Transaction = require('../data/models/transaction.model');
 const SYSTEM_ORG_ID = '00000000-0000-0000-0000-000000000000';
 const tracer = trace.getTracer('billing-service');
 
+const TX_TYPE = {
+  CREDIT: 'CREDIT',
+  DEBIT: 'DEBIT',
+};
+
+const TX_STATUS = {
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+  PENDING: 'PENDING',
+};
+
+const WALLET_STATUS = {
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+};
+
 function getCacheKey(prefix, tenant, key) {
   return `billing:${prefix}:${tenant}:${key}`;
 }
@@ -129,6 +145,7 @@ class BillingService {
         throw err;
       }
 
+      let result;
       const t = await sequelize.transaction();
       try {
         const wallet = await Wallet.findOne({
@@ -152,38 +169,44 @@ class BillingService {
           {
             walletId: wallet.id,
             tenant,
-            type: 'CREDIT',
+            type: TX_TYPE.CREDIT,
             amountMinor: Number(amountMinor),
             balanceBeforeMinor,
             balanceAfterMinor,
             description: 'Wallet Funding',
             reference: idempotencyKey || reference,
-            status: 'SUCCESS',
+            status: TX_STATUS.SUCCESS,
           },
           { transaction: t }
         );
 
         await t.commit();
 
-        const result = {
+        result = {
           newBalanceMinor: balanceAfterMinor,
           currency: wallet.currency,
           reference: tx.reference,
         };
+      } catch (error) {
+        if (!t.finished) {
+           await t.rollback();
+        }
+        throw error;
+      }
 
-        if (idempotencyKey) {
+      if (idempotencyKey && result) {
+        try {
           await redisClient.set(
             getCacheKey('fund', tenant, idempotencyKey),
             JSON.stringify(result),
             { EX: 86400 }
           );
+        } catch (e) {
+          console.error(`Failed to cache fund wallet result for key ${idempotencyKey}`, e);
         }
-
-        return result;
-      } catch (error) {
-        await t.rollback();
-        throw error;
       }
+
+      return result;
     });
   }
 
@@ -209,6 +232,7 @@ class BillingService {
         };
       }
 
+      let result;
       const t = await sequelize.transaction();
       try {
         const clientWallet = await Wallet.findOne({
@@ -222,7 +246,7 @@ class BillingService {
           return { success: false, error: { code: 'WALLET_NOT_FOUND', message: 'Client wallet does not exist.' } };
         }
 
-        if (clientWallet.status === 'SUSPENDED') {
+        if (clientWallet.status === WALLET_STATUS.SUSPENDED) {
           await t.rollback();
           return { success: false, error: { code: 'WALLET_SUSPENDED', message: 'Client wallet is suspended.' } };
         }
@@ -239,6 +263,7 @@ class BillingService {
 
         await clientWallet.decrement('balanceMinor', { by: costMinor, transaction: t });
         await systemWallet.increment('balanceMinor', { by: costMinor, transaction: t });
+        
         await clientWallet.reload({ transaction: t });
         await systemWallet.reload({ transaction: t });
 
@@ -249,12 +274,13 @@ class BillingService {
           {
             walletId: clientWallet.id,
             tenant,
-            type: 'DEBIT',
+            type: TX_TYPE.DEBIT,
             amountMinor: costMinor,
             balanceBeforeMinor: clientBalanceBeforeMinor,
             balanceAfterMinor: clientBalanceAfterMinor,
             description: `${serviceType} Verification`,
             reference: idempotencyKey,
+            status: TX_STATUS.SUCCESS,
           },
           { transaction: t }
         );
@@ -263,39 +289,46 @@ class BillingService {
           {
             walletId: systemWallet.id,
             tenant,
-            type: 'CREDIT',
+            type: TX_TYPE.CREDIT,
             amountMinor: costMinor,
             balanceBeforeMinor: systemBalanceBeforeMinor,
             balanceAfterMinor: systemBalanceAfterMinor,
             description: `Revenue from ${serviceType} - Org: ${organizationId}`,
             reference: idempotencyKey,
+            status: TX_STATUS.SUCCESS,
           },
           { transaction: t }
         );
 
         await t.commit();
 
-        const result = {
+        result = {
           success: true,
           costMinor,
           newBalanceMinor: clientBalanceAfterMinor,
           currency: clientWallet.currency,
           error: null,
         };
+      } catch (error) {
+        if (!t.finished) {
+           await t.rollback();
+        }
+        throw error;
+      }
 
-        if (idempotencyKey) {
+      if (idempotencyKey && result) {
+        try {
           await redisClient.set(
             getCacheKey('charge', tenant, idempotencyKey),
             JSON.stringify(result),
             { EX: 86400 }
           );
+        } catch (e) {
+          console.error(`Failed to cache charge wallet result for key ${idempotencyKey}`, e);
         }
-
-        return result;
-      } catch (error) {
-        await t.rollback();
-        throw error;
       }
+
+      return result;
     });
   }
 
@@ -318,7 +351,7 @@ class BillingService {
         where: {
           tenant,
           reference,
-          type: 'CREDIT',
+          type: TX_TYPE.CREDIT,
           description: `Refund for failed ${serviceType} Verification`,
         },
       });
@@ -339,17 +372,20 @@ class BillingService {
           transaction: t,
           lock: t.LOCK.UPDATE,
         });
-        const systemWallet = await this.ensureSystemWallet(tenant, t);
 
-        if (!clientWallet || !systemWallet) {
-          throw new Error('Wallet not found during refund.');
+        if (!clientWallet) {
+           await t.rollback();
+           return { success: false, error: { code: 'WALLET_NOT_FOUND', message: 'Client wallet not found' } };
         }
+        
+        const systemWallet = await this.ensureSystemWallet(tenant, t);
 
         const clientBalanceBeforeMinor = Number(clientWallet.balanceMinor);
         const systemBalanceBeforeMinor = Number(systemWallet.balanceMinor);
 
         await clientWallet.increment('balanceMinor', { by: costMinor, transaction: t });
         await systemWallet.decrement('balanceMinor', { by: costMinor, transaction: t });
+        
         await clientWallet.reload({ transaction: t });
         await systemWallet.reload({ transaction: t });
 
@@ -360,12 +396,13 @@ class BillingService {
           {
             walletId: clientWallet.id,
             tenant,
-            type: 'CREDIT',
+            type: TX_TYPE.CREDIT,
             amountMinor: costMinor,
             balanceBeforeMinor: clientBalanceBeforeMinor,
             balanceAfterMinor: clientBalanceAfterMinor,
             description: `Refund for failed ${serviceType} Verification`,
             reference,
+            status: TX_STATUS.SUCCESS,
           },
           { transaction: t }
         );
@@ -374,12 +411,13 @@ class BillingService {
           {
             walletId: systemWallet.id,
             tenant,
-            type: 'DEBIT',
+            type: TX_TYPE.DEBIT,
             amountMinor: costMinor,
             balanceBeforeMinor: systemBalanceBeforeMinor,
             balanceAfterMinor: systemBalanceAfterMinor,
             description: `Refund to Org: ${organizationId}`,
             reference,
+            status: TX_STATUS.SUCCESS,
           },
           { transaction: t }
         );
@@ -392,7 +430,9 @@ class BillingService {
           error: null,
         };
       } catch (error) {
-        await t.rollback();
+        if (!t.finished) {
+           await t.rollback();
+        }
         throw error;
       }
     });
