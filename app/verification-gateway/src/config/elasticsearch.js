@@ -1,7 +1,8 @@
 const { Client } = require('@elastic/elasticsearch');
 const { verificationLogIndex } = require('../modules/audit/search/verification-log.index');
+const env = require('./env');
 
-const ELASTICSEARCH_URL = process.env.ELASTICSEARCH_URL || 'http://localhost:9200';
+const ELASTICSEARCH_URL = env.ELASTICSEARCH_URL;
 
 let esClient = null;
 
@@ -10,8 +11,8 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const connectElasticsearch = async () => {
   esClient = new Client({ node: ELASTICSEARCH_URL });
 
-  const maxAttempts = Number(process.env.ELASTICSEARCH_CONNECT_RETRIES || 10);
-  const baseDelayMs = Number(process.env.ELASTICSEARCH_CONNECT_DELAY_MS || 1000);
+  const maxAttempts = env.ELASTICSEARCH_CONNECT_RETRIES;
+  const baseDelayMs = env.ELASTICSEARCH_CONNECT_DELAY_MS;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {

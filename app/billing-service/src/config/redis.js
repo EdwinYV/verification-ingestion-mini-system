@@ -1,7 +1,8 @@
 const { createClient } = require('redis');
+const env = require('./env');
 
 const redisClient = createClient({
-  url: process.env.BILLING_REDIS_URL || process.env.REDIS_URL,
+  url: env.BILLING_REDIS_URL,
 });
 
 redisClient.on('error', (err) => console.error('Billing Redis Client Error', err));

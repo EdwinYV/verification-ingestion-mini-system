@@ -1,7 +1,8 @@
 const { createClient } = require('redis');
+const env = require('./env');
 
 const redisClient = createClient({
-  url: process.env.REDIS_URL_GATEWAY
+  url: env.REDIS_URL_GATEWAY,
 });
 
 redisClient.on('error', (err) => console.error('Gateway Redis Client Error', err));

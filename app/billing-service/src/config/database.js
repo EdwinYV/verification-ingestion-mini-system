@@ -1,16 +1,17 @@
 const { Sequelize } = require('sequelize');
+const env = require('./env');
 
-const sequelize = new Sequelize(process.env.BILLING_POSTGRES_URI || process.env.POSTGRES_URI, {
+const sequelize = new Sequelize(env.BILLING_POSTGRES_URI, {
   dialect: 'postgres',
   logging: false,
   pool: {
     max: 10,
     min: 0,
-    acquire: Number(process.env.PG_POOL_ACQUIRE_TIMEOUT_MS || 5000),
+    acquire: env.PG_POOL_ACQUIRE_TIMEOUT_MS,
     idle: 10000,
   },
   dialectOptions: {
-    connectTimeout: Number(process.env.PG_CONNECT_TIMEOUT_MS || 5000),
+    connectTimeout: env.PG_CONNECT_TIMEOUT_MS,
   },
 });
 

@@ -13,6 +13,7 @@ const { publishToQueue } = require('../../../config/rabbitmq');
 const { injectTraceHeaders } = require('../../../utils/tracing.util');
 const { enqueueVerificationLogIndex } = require('../../audit/search/search-index.publisher');
 const crypto = require('crypto');
+const env = require('../../../config/env');
 
 const CACHE_TTL_SECONDS = 3600;
 
@@ -156,7 +157,7 @@ class VerificationService {
     }
 
     try {
-      const callbackUrl = `${process.env.GATEWAY_BASE_URL}/api/v1/webhook/gov-provider`;
+      const callbackUrl = `${env.GATEWAY_BASE_URL}/api/v1/webhook/gov-provider`;
       let providerResponse = null;
 
       switch (normalizedType) {

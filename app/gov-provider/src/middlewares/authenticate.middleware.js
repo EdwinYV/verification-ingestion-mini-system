@@ -1,8 +1,9 @@
 const Organization = require('../models/Organization.model');
 const { verifySignature } = require('../security/hmac.util');
 const mongoose = require('mongoose');
+const env = require('../config/env');
 
-const AUTH_DB_QUERY_TIMEOUT_MS = Number(process.env.AUTH_DB_QUERY_TIMEOUT_MS || 3000);
+const AUTH_DB_QUERY_TIMEOUT_MS = env.AUTH_DB_QUERY_TIMEOUT_MS;
 
 const authenticate = async (req, res, next) => {
   try {

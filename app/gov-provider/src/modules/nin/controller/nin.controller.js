@@ -26,5 +26,4 @@ exports.verifyNIN = asyncHandler(async (req, res) => {
     status: 'PENDING',
     message: 'Verification request accepted. Result will be sent to callbackUrl.',
   });
-  console.log('[DEBUG] NIN Controller: Response sent.');
 });

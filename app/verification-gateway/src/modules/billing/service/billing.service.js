@@ -2,11 +2,12 @@ const path = require('path');
 const { trace, SpanStatusCode, context, propagation } = require('@opentelemetry/api');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
+const env = require('../../../config/env');
 
 const tracer = trace.getTracer('verification-gateway');
 const TENANT = 'verification-gateway';
 const MINOR_PER_MAJOR = 100;
-const DEADLINE_MS = Number(process.env.BILLING_GRPC_DEADLINE_MS || 3000);
+const DEADLINE_MS = env.BILLING_GRPC_DEADLINE_MS;
 
 const PROTO_PATH = path.resolve(__dirname, '../../../grpc/proto/billing.proto');
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
@@ -20,7 +21,7 @@ const protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
 const billingProto = protoDescriptor.billing.v1;
 
 const client = new billingProto.BillingService(
-  process.env.BILLING_GRPC_ADDR || 'billing-service:50051',
+  env.BILLING_GRPC_ADDR,
   grpc.credentials.createInsecure()
 );
 

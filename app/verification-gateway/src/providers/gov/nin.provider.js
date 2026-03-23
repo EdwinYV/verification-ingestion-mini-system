@@ -1,11 +1,12 @@
 const axios = require('axios');
 const crypto = require('crypto');
+const env = require('../../config/env');
 
 class NINProvider {
   constructor() {
-    this.baseUrl = process.env.GOV_PROVIDER_URL ||'http://gov-provider:3001';
-    this.clientId = process.env.GOV_CLIENT_ID || 'gov-client-id';
-    this.clientSecret = process.env.GOV_CLIENT_SECRET || 'gov-secret-key';
+    this.baseUrl = env.GOV_PROVIDER_URL;
+    this.clientId = env.GOV_CLIENT_ID;
+    this.clientSecret = env.GOV_CLIENT_SECRET;
   }
 
 

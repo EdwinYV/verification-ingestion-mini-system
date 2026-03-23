@@ -1,9 +1,10 @@
 const { redisClient } = require('../config/redis');
 const AppError = require('../utils/AppError');
+const env = require('../config/env');
 
 const RATE_LIMIT_WINDOW_SECONDS = 60; // 1 minute window
 const DEFAULT_MAX_REQUESTS = 100; // Default limit per window
-const REDIS_OP_TIMEOUT_MS = Number(process.env.RATE_LIMIT_REDIS_TIMEOUT_MS || 500);
+const REDIS_OP_TIMEOUT_MS = env.RATE_LIMIT_REDIS_TIMEOUT_MS;
 
 const withTimeout = (promise, timeoutMs, opName) => {
   return Promise.race([

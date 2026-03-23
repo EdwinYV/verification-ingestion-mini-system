@@ -1,15 +1,15 @@
-require('dotenv').config();
 require('./observability/otel');
 
 const app = require('./app');
 const { connectDB } = require('./config/database');
 const { connectRedis } = require('./config/redis');
 const { startGrpcServer } = require('./grpc/server');
+const env = require('./config/env');
 
 require('./modules/billing/data/models/wallet.model');
 require('./modules/billing/data/models/transaction.model');
 
-const HTTP_PORT = Number(process.env.PORT || 3002);
+const HTTP_PORT = env.PORT;
 
 const start = async () => {
   try {

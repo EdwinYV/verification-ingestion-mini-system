@@ -1,20 +1,20 @@
-require('dotenv').config();
 require('./observability/otel');
 const app = require('./app');
 const mongoose = require('mongoose');
 const seedData = require('./utils/seeder');
+const env = require('./config/env');
 const { connectRedis } = require('./config/redis');
 const { connectRabbitMQ } = require('./config/rabbitmq');
 const { startWorker } = require('./workers/verification.worker');
 
-const PORT = process.env.PORT || 3001;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/gov-provider';
-const MONGO_SERVER_SELECTION_TIMEOUT_MS = Number(process.env.MONGO_SERVER_SELECTION_TIMEOUT_MS || 5000);
-const MONGO_SOCKET_TIMEOUT_MS = Number(process.env.MONGO_SOCKET_TIMEOUT_MS || 5000);
-const MONGO_CONNECT_TIMEOUT_MS = Number(process.env.MONGO_CONNECT_TIMEOUT_MS || 5000);
+const PORT = env.PORT;
+const MONGO_URI = env.MONGO_URI;
+const MONGO_SERVER_SELECTION_TIMEOUT_MS = env.MONGO_SERVER_SELECTION_TIMEOUT_MS;
+const MONGO_SOCKET_TIMEOUT_MS = env.MONGO_SOCKET_TIMEOUT_MS;
+const MONGO_CONNECT_TIMEOUT_MS = env.MONGO_CONNECT_TIMEOUT_MS;
 
 mongoose.set('bufferCommands', false);
-mongoose.set('bufferTimeoutMS', Number(process.env.MONGO_BUFFER_TIMEOUT_MS || 3000));
+mongoose.set('bufferTimeoutMS', env.MONGO_BUFFER_TIMEOUT_MS);
 
 const startServer = async () => {
   try {

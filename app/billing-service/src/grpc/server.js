@@ -1,5 +1,6 @@
 const { grpc, billingProto } = require('./proto');
 const billingService = require('../modules/billing/service/billing.service');
+const env = require('../config/env');
 const {
   grpcError,
   validateWalletRef,
@@ -10,6 +11,8 @@ const {
 const { withGrpcTrace } = require('./interceptors');
 
 class BillingGrpcHandler {
+
+
   async findOrCreateWallet(call, callback) {
     withGrpcTrace(call, 'FindOrCreateWallet', async () => {
       validateWalletRef(call.request.wallet);
@@ -136,7 +139,7 @@ function startGrpcServer() {
   };
 
   server.addService(billingProto.BillingService.service, implementation);
-  const address = process.env.BILLING_GRPC_BIND_ADDRESS || '0.0.0.0:50051';
+  const address = env.BILLING_GRPC_BIND_ADDRESS;
 
   server.bindAsync(address, grpc.ServerCredentials.createInsecure(), (error, port) => {
     if (error) {

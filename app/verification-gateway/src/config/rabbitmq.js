@@ -1,6 +1,7 @@
 const amqp = require('amqplib');
+const env = require('./env');
 
-const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://rabbitmq:5672';
+const RABBITMQ_URL = env.RABBITMQ_URL;
 
 
 const VERIFICATION_EXCHANGE = 'verification_exchange';
