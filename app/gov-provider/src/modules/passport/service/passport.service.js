@@ -1,9 +1,14 @@
 const Passport = require('../data/passport.model');
 const BaseVerificationService = require('../../BaseVerificationService');
+const { VERIFICATION_TYPE } = require('../../../../../shared/constants/verification');
 
 class PassportService extends BaseVerificationService {
   constructor() {
-    super('PASSPORT', Passport, 'passportNumber');
+    super({
+      verificationType: VERIFICATION_TYPE.PASSPORT,
+      model: Passport,
+      searchField: 'passportNumber',
+    });
   }
 }
 

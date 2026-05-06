@@ -1,0 +1,19 @@
+const VERIFICATION_TYPE = Object.freeze({
+  NIN: 'NIN',
+  BVN: 'BVN',
+  PASSPORT: 'PASSPORT',
+  DRIVERS_LICENSE: 'DRIVERS_LICENSE',
+});
+
+const JOB_STATUS = Object.freeze({
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+});
+
+module.exports = {
+  VERIFICATION_TYPE,
+  JOB_STATUS,
+};
+

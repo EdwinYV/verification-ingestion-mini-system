@@ -4,25 +4,10 @@ const { redisClient } = require('../../../config/redis');
 const PRICING = require('../../../config/pricing');
 const Wallet = require('../data/models/wallet.model');
 const Transaction = require('../data/models/transaction.model');
+const { TX_TYPE, TX_STATUS, WALLET_STATUS } = require('../billing.constants');
 
 const SYSTEM_ORG_ID = '00000000-0000-0000-0000-000000000000';
 const tracer = trace.getTracer('billing-service');
-
-const TX_TYPE = {
-  CREDIT: 'CREDIT',
-  DEBIT: 'DEBIT',
-};
-
-const TX_STATUS = {
-  SUCCESS: 'SUCCESS',
-  FAILED: 'FAILED',
-  PENDING: 'PENDING',
-};
-
-const WALLET_STATUS = {
-  ACTIVE: 'ACTIVE',
-  SUSPENDED: 'SUSPENDED',
-};
 
 function getCacheKey(prefix, tenant, key) {
   return `billing:${prefix}:${tenant}:${key}`;

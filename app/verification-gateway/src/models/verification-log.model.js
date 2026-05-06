@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { JOB_STATUS } = require('../../../shared/constants/verification');
 
 const verificationLogSchema = new mongoose.Schema({
   verificationType: {
@@ -15,8 +16,8 @@ const verificationLogSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'],
-    default: 'PENDING',
+    enum: Object.values(JOB_STATUS),
+    default: JOB_STATUS.PENDING,
     index: true
   },
   retryCount: {

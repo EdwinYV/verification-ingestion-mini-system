@@ -1,0 +1,22 @@
+const TX_TYPE = {
+  CREDIT: 'CREDIT',
+  DEBIT: 'DEBIT',
+};
+
+const TX_STATUS = {
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+  PENDING: 'PENDING',
+};
+
+const WALLET_STATUS = {
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+};
+
+module.exports = {
+  TX_TYPE,
+  TX_STATUS,
+  WALLET_STATUS,
+};
+

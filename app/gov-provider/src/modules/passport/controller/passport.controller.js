@@ -1,26 +1,4 @@
-const { publishToQueue } = require('../../../config/rabbitmq');
-const asyncHandler = require('../../../utils/asyncHandler');
+const { createVerificationHandler } = require('../../verification/controller/verification.controllerFactory');
+const { VERIFICATION_TYPE } = require('../../../../../shared/constants/verification');
 
-exports.verifyPassport = asyncHandler(async (req, res) => {
-  const { id, mode, purpose, callbackUrl, verificationId } = req.body;
-  const organization = req.organization;
-  const idempotencyKey = req.headers['x-idempotency-key'];
-
-  const jobData = {
-    type: 'PASSPORT',
-    id,
-    mode,
-    purpose,
-    organizationId: organization._id,
-    idempotencyKey,
-    callbackUrl,
-    verificationId,
-  };
-
-  publishToQueue(jobData);
-
-  res.status(202).json({
-    status: 'PENDING',
-    message: 'Verification request accepted. Result will be sent to callbackUrl.',
-  });
-});
+exports.verifyPassport = createVerificationHandler(VERIFICATION_TYPE.PASSPORT);

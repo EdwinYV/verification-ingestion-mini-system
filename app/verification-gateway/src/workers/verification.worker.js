@@ -4,8 +4,10 @@ const VerificationLog = require('../models/verification-log.model');
 const billingService = require('../modules/billing/service/billing.service');
 const { extractTraceContext } = require('../utils/tracing.util');
 const { context, trace, SpanStatusCode } = require('@opentelemetry/api');
+const { JOB_STATUS } = require('../../../shared/constants/verification');
+const { DEFAULT_MAX_RETRIES, getRetryDelayMs } = require('../../../shared/retry/policy');
 
-const MAX_RETRIES = 5;
+const MAX_RETRIES = DEFAULT_MAX_RETRIES;
 const tracer = trace.getTracer('verification-gateway');
 
 const startWorker = () => {
@@ -35,7 +37,7 @@ const startWorker = () => {
         });
 
         try {
-          await VerificationLog.findByIdAndUpdate(logId, { status: 'PROCESSING' });
+          await VerificationLog.findByIdAndUpdate(logId, { status: JOB_STATUS.PROCESSING });
           await verificationService.processVerificationJob(jobData);
           channel.ack(msg);
           span.setStatus({ code: SpanStatusCode.OK });
@@ -49,13 +51,13 @@ const startWorker = () => {
           const currentRetries = log.retryCount || 0;
 
           if (currentRetries < MAX_RETRIES) {
-            const delay = Math.pow(2, currentRetries) * 1000;
+            const delay = getRetryDelayMs(currentRetries);
             const nextRetryCount = currentRetries + 1;
 
             console.log(`Retrying job ${logId} in ${delay}ms (Attempt ${nextRetryCount}/${MAX_RETRIES})`);
 
             await VerificationLog.findByIdAndUpdate(logId, { 
-              status: 'PENDING', 
+              status: JOB_STATUS.PENDING, 
               retryCount: nextRetryCount,
               errorMessage: `Processing failed. Retrying in ${delay}ms... (${error.message})`
             });
@@ -68,7 +70,7 @@ const startWorker = () => {
             console.error(`Job ${logId} failed permanently after ${MAX_RETRIES} retries.`);
 
             await VerificationLog.findByIdAndUpdate(logId, {
-              status: 'FAILED',
+              status: JOB_STATUS.FAILED,
               errorMessage: `Verification failed after ${MAX_RETRIES} retries: ${error.message}`,
               completedAt: new Date(),
             });

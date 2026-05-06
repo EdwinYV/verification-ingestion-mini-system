@@ -4,8 +4,10 @@ const ninService = require('../modules/nin/service/nin.service');
 const bvnService = require('../modules/bvn/service/bvn.service');
 const passportService = require('../modules/passport/service/passport.service');
 const dlService = require('../modules/drivers-license/service/dl.service');
+const { VERIFICATION_TYPE } = require('../../../shared/constants/verification');
+const { DEFAULT_MAX_RETRIES, getRetryDelayMs } = require('../../../shared/retry/policy');
 
-const MAX_RETRIES = 5;
+const MAX_RETRIES = DEFAULT_MAX_RETRIES;
 
 const startWorker = () => {
   const channel = getChannel();
@@ -41,16 +43,16 @@ const startWorker = () => {
           const organization = { _id: organizationId };
 
           switch (type) {
-            case 'NIN':
+            case VERIFICATION_TYPE.NIN:
               result = await ninService.verify(id, mode, purpose, organization, idempotencyKey);
               break;
-            case 'BVN':
+            case VERIFICATION_TYPE.BVN:
               result = await bvnService.verify(id, mode, purpose, organization, idempotencyKey);
               break;
-            case 'PASSPORT':
+            case VERIFICATION_TYPE.PASSPORT:
               result = await passportService.verify(id, mode, purpose, organization, idempotencyKey);
               break;
-            case 'DRIVERS_LICENSE':
+            case VERIFICATION_TYPE.DRIVERS_LICENSE:
               result = await dlService.verify(id, mode, purpose, organization, idempotencyKey);
               break;
             default:
@@ -84,7 +86,7 @@ const startWorker = () => {
         }
       } catch (processingError) {
         if (retryCount < MAX_RETRIES) {
-          const delay = Math.pow(2, retryCount) * 1000;
+          const delay = getRetryDelayMs(retryCount);
           console.log(`Retrying webhook for ${resolvedVerificationId} in ${delay}ms (Attempt ${retryCount + 1}/${MAX_RETRIES})`);
 
           const nextJobData = { ...jobData, retryCount: retryCount + 1 };

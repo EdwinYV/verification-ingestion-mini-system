@@ -14,22 +14,9 @@ const { injectTraceHeaders } = require('../../../utils/tracing.util');
 const { enqueueVerificationLogIndex } = require('../../audit/search/search-index.publisher');
 const crypto = require('crypto');
 const env = require('../../../config/env');
+const { VERIFICATION_TYPE, JOB_STATUS } = require('../../../../../shared/constants/verification');
 
 const CACHE_TTL_SECONDS = 3600;
-
-const VERIFICATION_TYPE = {
-  NIN: 'NIN',
-  BVN: 'BVN',
-  PASSPORT: 'PASSPORT',
-  DRIVERS_LICENSE: 'DRIVERS_LICENSE',
-};
-
-const JOB_STATUS = {
-  PENDING: 'PENDING',
-  PROCESSING: 'PROCESSING',
-  COMPLETED: 'COMPLETED',
-  FAILED: 'FAILED',
-};
 
 class VerificationService {
   async createVerificationJob(jobDetails) {
@@ -183,14 +170,6 @@ class VerificationService {
 
     } catch (error) {
       console.error(`Verification job ${logId} failed to dispatch:`, error.message);
-
-      try {
-         await billingService.refundWallet(clientOrganizationId, normalizedType, idempotencyKey);
-         await this.updateLog(logId, JOB_STATUS.FAILED, null, `Service dispatch failed: ${error.message}. Refund processed.`);
-      } catch (refundError) {
-         console.error(`Failed to refund wallet for job ${logId}:`, refundError);
-         await this.updateLog(logId, JOB_STATUS.FAILED, null, `Service dispatch failed: ${error.message}. Refund FAILED - Manual intervention required.`);
-      }
 
       throw new Error(`DISPATCH_FAILED: ${error.message}`);
     }
