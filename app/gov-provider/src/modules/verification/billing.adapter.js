@@ -1,11 +1,10 @@
 const billingService = require('../billing/service/billing.service');
-const AppError = require('../../utils/AppError');
-
-const BILLING_ERROR_MAP = {
-  INSUFFICIENT_FUNDS: { statusCode: 402, code: 'BILLING402' },
-  WALLET_SUSPENDED: { statusCode: 403, code: 'BILLING403' },
-  WALLET_NOT_FOUND: { statusCode: 404, code: 'BILLING404' },
-};
+const {
+  ForbiddenError,
+  NotFoundError,
+  PaymentRequiredError,
+  InternalError,
+} = require('../../../../shared/errors');
 
 class BillingAdapter {
   async chargeWallet(organizationId, verificationType, idempotencyKey) {
@@ -19,16 +18,19 @@ class BillingAdapter {
       return;
     }
 
-    const mapped = BILLING_ERROR_MAP[billingResult.error] || {
-      statusCode: 500,
-      code: 'BILLING500',
-    };
+    const message = billingResult.message || 'Billing failed';
 
-    throw new AppError(
-      billingResult.message || 'Billing failed',
-      mapped.statusCode,
-      mapped.code
-    );
+    if (billingResult.error === 'INSUFFICIENT_FUNDS') {
+      throw new PaymentRequiredError(message, 'BILLING402');
+    }
+    if (billingResult.error === 'WALLET_SUSPENDED') {
+      throw new ForbiddenError(message, 'BILLING403');
+    }
+    if (billingResult.error === 'WALLET_NOT_FOUND') {
+      throw new NotFoundError(message, 'BILLING404');
+    }
+
+    throw new InternalError(message, 'BILLING500');
   }
 }
 

@@ -6,7 +6,7 @@ const normalizer = require('../../../normalizers/identity.normalizer');
 const VerificationLog = require('../../../models/verification-log.model');
 const billingService = require('../../billing/service/billing.service');
 const generateIdempotencyKey = require('../../../utils/generateKey');
-const AppError = require('../../../utils/AppError');
+const { BadRequestError, ForbiddenError, NotFoundError } = require('../../../../../shared/errors');
 const { redisClient } = require('../../../config/redis');
 const { incrementMetric } = require('../../../utils/metrics.util');
 const { publishToQueue } = require('../../../config/rabbitmq');
@@ -60,11 +60,11 @@ class VerificationService {
     const verification = await VerificationLog.findById(logId);
 
     if (!verification) {
-      throw new AppError('Verification record not found.', 404, 'NOT_FOUND');
+      throw new NotFoundError('Verification record not found.', 'NOT_FOUND');
     }
 
     if (verification.clientOrganizationId.toString() !== clientOrganization._id.toString()) {
-      throw new AppError('You are not authorized to view this verification record.', 403, 'FORBIDDEN');
+      throw new ForbiddenError('You are not authorized to view this verification record.', 'FORBIDDEN');
     }
 
     return {
@@ -81,11 +81,11 @@ class VerificationService {
     const { verificationId, status, data, error } = payload;
 
     if (!payload) {
-      throw new AppError('Invalid webhook payload. Missing webhook details.', 400, 'BAD_REQUEST');
+      throw new BadRequestError('Invalid webhook payload. Missing webhook details.', 'BAD_REQUEST');
     }
     const log = await VerificationLog.findById(verificationId);
     if (!log) {
-      throw new AppError('Verification record not found for webhook.', 404, 'NOT_FOUND');
+      throw new NotFoundError('Verification record not found for webhook.', 'NOT_FOUND');
     }
 
     if (log.status === JOB_STATUS.COMPLETED || log.status === JOB_STATUS.FAILED) {

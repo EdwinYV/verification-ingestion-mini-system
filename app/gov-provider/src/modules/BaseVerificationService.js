@@ -1,4 +1,4 @@
-const AppError = require('../utils/AppError');
+const { BaseError, NotFoundError, InternalError } = require('../../../shared/errors');
 const billingAdapter = require('./verification/billing.adapter');
 const auditLogger = require('./verification/audit.logger');
 const maskingService = require('./verification/masking.service');
@@ -29,7 +29,7 @@ class BaseVerificationService {
           status: 'NOT_FOUND',
           fieldsAccessed: [],
         });
-        throw new AppError(`${this.verificationType} not found`, 404, 'NOT_FOUND');
+        throw new NotFoundError(`${this.verificationType} not found`, 'NOT_FOUND');
       }
 
       const responseData = this.masking.mask(record.toObject(), mode);
@@ -47,10 +47,10 @@ class BaseVerificationService {
 
       return { found: true, data: responseData };
     } catch (error) {
-      if (error instanceof AppError) {
+      if (error instanceof BaseError) {
         throw error;
       }
-      throw new AppError(`Verification failed: ${error.message}`, 500, 'INTERNAL_ERROR');
+      throw new InternalError(`Verification failed: ${error.message}`, 'INTERNAL_ERROR');
     }
   }
 }

@@ -13,6 +13,7 @@ const billingPath = path.resolve(
 const redisPath = path.resolve(__dirname, '../src/config/redis');
 const metricsPath = path.resolve(__dirname, '../src/utils/metrics.util');
 const envPath = path.resolve(__dirname, '../src/config/env');
+const rabbitmqPath = path.resolve(__dirname, '../src/config/rabbitmq');
 const ninProviderPath = path.resolve(__dirname, '../src/providers/gov/nin.provider');
 const bvnProviderPath = path.resolve(__dirname, '../src/providers/gov/bvn.provider');
 const passportProviderPath = path.resolve(__dirname, '../src/providers/gov/passport.provider');
@@ -68,6 +69,13 @@ test('dispatch failure does not refund in processVerificationJob', async () => {
   require.cache[require.resolve(envPath)] = {
     exports: {
       GATEWAY_BASE_URL: 'https://gateway.test',
+    },
+  };
+
+  resetModule(rabbitmqPath);
+  require.cache[require.resolve(rabbitmqPath)] = {
+    exports: {
+      publishToQueue: () => {},
     },
   };
 

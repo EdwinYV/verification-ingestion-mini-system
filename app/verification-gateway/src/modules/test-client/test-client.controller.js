@@ -1,13 +1,13 @@
 const verificationService = require('../verification/service/verification.service');
 const ClientOrganization = require('../../models/ClientOrganization.model');
 const asyncHandler = require('../../utils/asyncHandler');
-const AppError = require('../../utils/AppError');
+const { NotFoundError } = require('../../../../shared/errors');
 
 
 exports.testVerify = asyncHandler(async (req, res) => {
   const testClient = await ClientOrganization.findOne({ clientId: 'test-client-id' });
   if (!testClient) {
-    throw new AppError('Test client organization not found. Please ensure it is seeded.', 404, 'NOT_FOUND');
+    throw new NotFoundError('Test client organization not found. Please ensure it is seeded.', 'NOT_FOUND');
   }
 
   const { type, id, mode, purpose } = req.body;
@@ -45,7 +45,7 @@ exports.testCheckStatus = asyncHandler(async (req, res) => {
 
   const testClient = await ClientOrganization.findOne({ clientId: 'test-client-id' });
   if (!testClient) {
-    throw new AppError('Test client organization not found.', 404, 'NOT_FOUND');
+    throw new NotFoundError('Test client organization not found.', 'NOT_FOUND');
   }
 
   const statusResult = await verificationService.getJobStatus(id, testClient);

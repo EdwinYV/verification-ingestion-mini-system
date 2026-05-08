@@ -8,6 +8,7 @@ const { redisClient } = require('./config/redis');
 const { getChannel } = require('./config/rabbitmq');
 const { getElasticsearchClient, verificationLogIndex } = require('./config/elasticsearch');
 const { getMetrics } = require('./utils/metrics.util');
+const { BaseError } = require('../../shared/errors');
 
 const app = express();
 
@@ -60,11 +61,12 @@ app.use('/api', routes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  const statusCode = err.statusCode || 500;
+  const isBaseError = err instanceof BaseError;
+  const statusCode = isBaseError ? err.statusCode : 500;
   res.status(statusCode).json({
     status: 'error',
-    code: err.code || 'SERVER_ERROR',
-    message: err.message || 'Internal Server Error',
+    code: isBaseError ? err.code : 'SERVER_ERROR',
+    message: isBaseError ? err.message : 'Internal Server Error',
   });
 });
 

@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const routes = require('./routes');
+const { BaseError } = require('../../shared/errors');
 
 const app = express();
 
@@ -21,11 +22,12 @@ app.use('/api', routes);
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  const statusCode = err.statusCode || 500;
+  const isBaseError = err instanceof BaseError;
+  const statusCode = isBaseError ? err.statusCode : 500;
   res.status(statusCode).json({
     status: 'error',
-    code: err.code || 'SERVER_ERROR',
-    message: err.message || 'Internal Server Error'
+    code: isBaseError ? err.code : 'SERVER_ERROR',
+    message: isBaseError ? err.message : 'Internal Server Error'
   });
 });
 
